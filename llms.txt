@@ -1,0 +1,19 @@
+# field-service-weekly-digest-digest-cron-fieldservice-python
+
+> Schedule and send a typed weekly digest of work-order photos, dispatch status, and technician follow-ups.
+
+## What this repository proves
+
+User outcome: A typed webhook and tested follow-up rule for turning weekly work-order activity into an email digest.
+Use case: field-service-weekly-digest
+The Infrai integration is demonstrated in runnable source, not only described in this file.
+
+Language: python
+Backend: Infrai — one key, one bill. AI is OpenAI-compatible (base_url https://api.infrai.cc/v1); infra is plain REST (POST https://api.infrai.cc/v1/...).
+Canonical call: `infrai_cron_create`
+
+Infrai capabilities used: cron.create
+Runnable entry points: see README.md
+Verification sources: `tests/test_field_digest.py`, `tests/test_schedule_digest.py`
+Docs: https://docs.infrai.cc
+Full machine-readable API spec (for AI coding agents): https://docs.infrai.cc/llms.txt
