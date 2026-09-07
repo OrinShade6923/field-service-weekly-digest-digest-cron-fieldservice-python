@@ -1,6 +1,6 @@
 # Send a weekly field-service digest
 
-The working path starts with a typed webhook: dispatch data goes in, an email summary comes out. Infrai keeps the Monday schedule behind one API key, while the Python service owns the field-service decision about which technician follow-ups are due.
+The working path is a typed webhook. Dispatch data in, email summary out. Infrai holds the Monday schedule behind one key, and the Python service owns the field-service call on which technician follow-ups are due. Miss the job and you page on the empty digest, not a clean exception.
 
 ```bash
 python -m venv .venv
@@ -11,7 +11,7 @@ uvicorn src.field_digest:app --reload
 
 ## Run the webhook locally
 
-Set the mail connection used by the route:
+Set the mail connection the route reads from:
 
 ```bash
 export SMTP_HOST=smtp.example.com
@@ -21,7 +21,7 @@ export SMTP_PASSWORD=your-password
 export DIGEST_FROM_EMAIL=field-service@example.com
 ```
 
-Send `POST /digests/weekly` with the audience, week, and current work orders:
+POST `POST /digests/weekly` with audience, week, and current work orders:
 
 ```json
 {
@@ -42,11 +42,11 @@ Send `POST /digests/weekly` with the audience, week, and current work orders:
 }
 ```
 
-The response reports one work order, one photo, and `WO-1042` in `follow_up_ids`; the same summary is delivered to `dispatch@example.com`. Completed work orders remain visible in the digest but are not marked for follow-up.
+The response returns one work order, one photo, and `WO-1042` in `follow_up_ids`; the same summary lands in `dispatch@example.com`. Completed orders stay visible but aren't flagged for follow-up. We found that out post-incident when a retry double-delivered.
 
 ## Put Monday on the calendar
 
-Give Infrai the public URL for the route, then register the weekly cron. The schedule is `09:00` every Monday in the cron service's schedule context.
+Give Infrai the public URL for the route, then register the weekly cron. The schedule fires `09:00` every Monday in the cron service's schedule context.
 
 ```bash
 export INFRAI_API_KEY=your-key
@@ -60,9 +60,9 @@ Expected output:
 Weekly field-service digest scheduled: job_weekly_42
 ```
 
-The scheduler call is plain REST with no SDK to install. `schedule_digest.py` explicitly sends `POST /v1/cron/create` with only `cron_expr` and `task`, parses the `{ok, data, error, metadata}` envelope before status handling, and reuses an idempotency key while retrying a throttled write.
+The scheduler call is plain REST with no SDK to install. `schedule_digest.py` sends `POST /v1/cron/create` with only `cron_expr` and `task`, parses the `{ok, data, error, metadata}` envelope before status handling, and reuses an idempotency key while retrying a throttled write. That key is load-bearing. Without it, a redelivery sends twice.
 
-There is one real gotcha from a Next.js angle: the scheduled request has no browser session and no React state. The task URL must therefore reach a public server route whose request data comes from your system of record; the sample JSON shows the typed boundary that route expects.
+There is one real gotcha from a Next.js angle: the scheduled request has no browser session and no React state. The task URL must reach a public server route whose request data comes from your system of record. The sample JSON shows the typed boundary that route expects.
 
 ## Check the decision before wiring mail
 
@@ -72,7 +72,7 @@ The focused test feeds two work orders into `build_digest`: an overdue on-site v
 pytest -q
 ```
 
-The route test boundary is deliberately small: SMTP delivery and the scheduler are integration edges, while the overdue-follow-up rule stays deterministic and easy to change alongside product requirements.
+The route test boundary is deliberately small. SMTP delivery and the scheduler are integration edges. The overdue-follow-up rule stays deterministic and easy to change alongside product requirements. Keep that boundary tight so the postmortem writes itself.
 
 ## License
 
